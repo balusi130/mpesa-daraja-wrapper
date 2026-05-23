@@ -39,8 +39,27 @@ class MpesaClient:
 
         response = requests.post(
             f"{self.base_url}/mpesa/stkpush/v1/processrequest",
-            json=payload,
-            headers=self._headers()
+            json=payload, headers=self._headers()
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def stk_query(self, checkout_request_id: str, shortcode: str = None, passkey: str = None) -> dict:
+        """Check the status of an STK Push request."""
+        sc = shortcode or self.shortcode
+        pk = passkey or self.passkey
+        password, timestamp = MpesaAuth.generate_password(sc, pk)
+
+        payload = {
+            "BusinessShortCode": sc,
+            "Password": password,
+            "Timestamp": timestamp,
+            "CheckoutRequestID": checkout_request_id
+        }
+
+        response = requests.post(
+            f"{self.base_url}/mpesa/stkpushquery/v1/query",
+            json=payload, headers=self._headers()
         )
         response.raise_for_status()
         return response.json()
@@ -63,8 +82,7 @@ class MpesaClient:
 
         response = requests.post(
             f"{self.base_url}/mpesa/b2c/v1/paymentrequest",
-            json=payload,
-            headers=self._headers()
+            json=payload, headers=self._headers()
         )
         response.raise_for_status()
         return response.json()
@@ -85,8 +103,27 @@ class MpesaClient:
 
         response = requests.post(
             f"{self.base_url}/mpesa/transactionstatus/v1/query",
-            json=payload,
-            headers=self._headers()
+            json=payload, headers=self._headers()
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def account_balance(self, queue_timeout_url: str, result_url: str, shortcode: str = None) -> dict:
+        """Query the balance of a shortcode."""
+        payload = {
+            "Initiator": "apiop2",
+            "SecurityCredential": "",
+            "CommandID": "AccountBalance",
+            "PartyA": shortcode or self.shortcode,
+            "IdentifierType": "4",
+            "Remarks": "balance check",
+            "QueueTimeOutURL": queue_timeout_url,
+            "ResultURL": result_url
+        }
+
+        response = requests.post(
+            f"{self.base_url}/mpesa/accountbalance/v1/query",
+            json=payload, headers=self._headers()
         )
         response.raise_for_status()
         return response.json()
